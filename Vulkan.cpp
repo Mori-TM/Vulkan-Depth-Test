@@ -847,7 +847,7 @@ void CreateFramebuffers()
 	{
 		std::vector<VkImageView> AttachmentViews;
 		AttachmentViews.push_back(imageViews[i]);
-		AttachmentViews.push_back(GetImageView());
+		AttachmentViews.push_back(DepthImageView);
 		
 		
 		VkFramebufferCreateInfo FramebufferCreateInfo;
@@ -876,11 +876,6 @@ void CreateCommandPool()
 	
 	VkResult result = vkCreateCommandPool(device, &CommandPoolCreateInfo, NULL, &CommandPool);
 	ASSERT_VULKAN(result);
-}
-
-void CreateDepthBuffer()
-{
-	Create(device, physicalDevices[0], CommandPool, queue, Width, Height);
 }
 
 void CreateCommandBuffers()
@@ -1087,7 +1082,7 @@ void StartVulkan()
 	CreateDescriptorSetLayout();
 	CreatePipeline();
 	CreateCommandPool();
-	CreateDepthBuffer();
+	CreateDepthBuffer(device, physicalDevices[0], CommandPool, queue, Width, Height);
 	CreateFramebuffers();
 	CreateCommandBuffers();
 	
@@ -1107,36 +1102,31 @@ void RecreateSwapchain()
 {
 	vkDeviceWaitIdle(device);
 	
+	DestroyDepthBuffer();
+	
 	vkFreeCommandBuffers(device, CommandPool, amountOfImagesInSwapchain, CommandBuffers);
 	delete[] CommandBuffers;
-	
-	vkDestroyCommandPool(device, CommandPool, NULL);
 	
 	for(size_t i = 0; i < amountOfImagesInSwapchain; i++)
 	{
 		vkDestroyFramebuffer(device, Framebuffers[i], NULL);
 	}
 	delete[] Framebuffers;
-	
-//	vkDestroyPipeline(device, Pipeline, NULL);
+
 	vkDestroyRenderPass(device, RenderPass, NULL);
 	for(int i = 0; i < amountOfImagesInSwapchain; i++)
 	{
 		vkDestroyImageView(device, imageViews[i], NULL);
 	}
 	delete[] imageViews;
-//	vkDestroyPipelineLayout(device, PipelineLayout, NULL);
-//	vkDestroyShaderModule(device, ShaderModuleVert, NULL);
-//	vkDestroyShaderModule(device, ShaderModuleFrag, NULL);
 	
 	VkSwapchainKHR oldSwapchain = swapchain;
 	
 	CreateSwapchain();
 	CreateImageViews();
 	CreateRenderPass();
-//	CreatePipeline();
+	CreateDepthBuffer(device, physicalDevices[0], CommandPool, queue, Width, Height);
 	CreateFramebuffers();
-	CreateCommandPool();
 	CreateCommandBuffers();
 	RecordCommandBuffers();
 	
@@ -1245,7 +1235,7 @@ void ShutdownVulkan()
 {
 	vkDeviceWaitIdle(device);
 	
-	Destroy();
+	DestroyDepthBuffer();
 	
 	vkDestroyDescriptorSetLayout(device, DescriptorSetLayout, NULL);
 	vkDestroyDescriptorPool(device, DescriptorPool, NULL);
